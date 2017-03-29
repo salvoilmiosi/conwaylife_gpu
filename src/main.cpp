@@ -9,11 +9,14 @@
 #include "sources.h"
 
 #include "tinyfiledialogs.h"
+#include "bmpread.h"
+
+const char *const TITLE = "Conway's game of life";
 
 static const int window_width = 1024;
 static const int window_height = 1024;
 
-GLuint start_pattern;
+GLuint start_pattern = 0;
 int current_tex = 0;
 
 struct vec2 {
@@ -221,13 +224,66 @@ static void set_uniform_vec2(GLuint program_id, const char *name, vec2 value) {
 	glUniform2f(location, value.x, value.y);
 }
 
-static void init_conway() {
-	const char *filter[] = {"*.bmp"};
-	const char *filename = tinyfd_openFileDialog("Conway's game of life", "", 1, filter, "Bitmaps", 0);
+static int create_pattern(bmpread_t *image, int width, int height) {
+	if (start_pattern == 0) {
+		glDeleteTextures(1, &start_pattern);
+	}
 
-	if (!filename) return;
+	unsigned char *data = (unsigned char *)malloc(width * height * 4);
+	int xo = (width - image->width) / 2;
+	int yo = (height - image->height) / 2;
+
+	for (int y=0; y<image->height; ++y) {
+		for (int x=0; x<image->width; ++x) {
+			size_t img_pos = (y * image->width + x) * 3;
+			unsigned char r = image->rgb_data[img_pos];
+			unsigned char g = image->rgb_data[img_pos+1];
+			unsigned char b = image->rgb_data[img_pos+2];
+			unsigned char color = (r + g + b) / 3;
+			size_t pos = ((y + yo) * width + x + xo) * 4;
+			data[pos] = color;
+			data[pos+1] = color;
+			data[pos+2] = color;
+			data[pos+3] = 0xff;
+		}
+	}
+
+	glGenTextures(1, &start_pattern);
+	glBindTexture(GL_TEXTURE_2D, start_pattern);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+
+	if (check_gl_error("creating texture") != GL_NO_ERROR) return 1;
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+	free(data);
+	return 0;
+}
+
+static bool init_conway() {
+	const char *filter[] = {"*.bmp"};
+	const char *filename = tinyfd_openFileDialog(TITLE, "", 1, filter, "Bitmaps", 0);
+
+	if (!filename) return false;
+
+	bmpread_t pattern;
+	if (!bmpread(filename, BMPREAD_ANY_SIZE | BMPREAD_BYTE_ALIGN, &pattern)) {
+		tinyfd_messageBox(TITLE, "Could not open this bitmap.", "ok", "warning", 1);
+		return false;
+	}
+
+	if (create_pattern(&pattern, window_width, window_height) != 0) {
+		bmpread_free(&pattern);
+		return false;
+	}
+
+	bmpread_free(&pattern);
 
 	current_tex = 0;
+	return true;
 }
 
 static void render() {
@@ -294,12 +350,12 @@ int main(int argc, char**argv) {
 
 	glfwSetErrorCallback(error_callback);
 
-	glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
+	//glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
-	GLFWwindow *window = glfwCreateWindow(window_width, window_height, "Mandelbrot", nullptr, nullptr);
+	GLFWwindow *window = glfwCreateWindow(window_width, window_height, TITLE, nullptr, nullptr);
 
 	if (!window) {
 		glfwTerminate();
@@ -326,7 +382,9 @@ int main(int argc, char**argv) {
 		return 4;
 	}
 
-	init_conway();
+	if (!init_conway()) {
+		return 0;
+	}
 
 	while (!glfwWindowShouldClose(window)) {
 		render();
