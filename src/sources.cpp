@@ -48,26 +48,28 @@ uniform vec2 texel_size;
 varying vec2 tex_coords;
 
 void main() {
-	int value = 0;
+	int num_alive = 0;
+	bool cell_alive = false;
 	for (int x=-1; x<=1; ++x) {
 		for (int y=-1; y<=1; ++y) {
-			bool b = texture2D(in_texture, tex_coords + vec2(x * texel_size.x, y * texel_size.y)).r > 0;
+			bool b = texture2D(in_texture, tex_coords + vec2(float(x) * texel_size.x, float(y) * texel_size)).r > 0.0;
 			if (x==0 && y==0) {
-				value += b * 0x80;
+				cell_alive = b;
 			} else {
-				value += b;
+				num_alive += int(b);
 			}
 		}
 	}
-	switch (value) {
-	case 0x03:
-	case 0x82:
-	case 0x83:
-		gl_FragColor = vec4(1.0); // alive
-		break;
-	default:
-		gl_FragColor = vec4(0.0); // dead
-		break;
+	if (cell_alive) {
+		if (num_alive <= 2 || num_alive >=4) {
+			gl_FragColor = vec4(0.0);
+		} else {
+			gl_FragColor = vec4(1.0);
+		}
+	} else if (num_alive == 3) {
+		gl_FragColor = vec4(1.0);
+	} else {
+		gl_FragColor = vec4(0.0);
 	}
 }
 )SOURCE_STEP";
@@ -86,7 +88,7 @@ const vec4 color_alive = vec4(1.0, 1.0, 1.0, 1.0);
 const vec4 color_dead  = vec4(0.0, 0.0, 0.0, 1.0);
 
 void main() {
-	bool alive = texture2D(in_texture, tex_coords).r > 0;
+	bool alive = texture2D(in_texture, tex_coords).r > 0.0;
 	gl_FragColor = alive ? color_alive : color_dead;
 }
 )SOURCE_DRAW";
