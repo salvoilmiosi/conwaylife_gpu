@@ -6,7 +6,6 @@
 #include <cstring>
 #include <math.h>
 
-#include "color.h"
 #include "sources.h"
 
 #include "tinyfiledialogs.h"

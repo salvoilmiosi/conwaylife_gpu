@@ -3,4 +3,4 @@
 	url = https://github.com/salvoilmiosi/libbmpread.git
 [submodule "tinyfiledialogs"]
 	path = tinyfiledialogs
-	url = https://github.com/salvoilmiosi/tinyfiledialogs
+	url = https://github.com/salvoilmiosi/tinyfiledialogs.git
