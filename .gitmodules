@@ -1,0 +1,6 @@
+[submodule "tinyfiledialogs"]
+	path = tinyfiledialogs
+	url = https://github.com/salvoilmiosi/tinyfiledialogs.git
+[submodule "libbmpread"]
+	path = libbmpread
+	url = https://github.com/salvoilmiosi/libbmpread.git
