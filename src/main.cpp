@@ -263,12 +263,7 @@ static int create_pattern(bmpread_t *image, int width, int height) {
 	return 0;
 }
 
-static bool init_conway() {
-	const char *filter[] = {"*.bmp"};
-	const char *filename = tinyfd_openFileDialog(TITLE, "", 1, filter, "Bitmaps", 0);
-
-	if (!filename) return false;
-
+static bool init_conway(const char *filename) {
 	bmpread_t pattern;
 	if (!bmpread(filename, BMPREAD_ANY_SIZE | BMPREAD_BYTE_ALIGN, &pattern)) {
 		tinyfd_messageBox(TITLE, "Could not open this bitmap.", "ok", "warning", 1);
@@ -355,6 +350,9 @@ int main(int argc, char**argv) {
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
+	const char *filter[] = {"*.bmp"};
+	const char *filename = tinyfd_openFileDialog(TITLE, "", 1, filter, "Bitmaps", 0);
+
 	GLFWwindow *window = glfwCreateWindow(window_width, window_height, TITLE, nullptr, nullptr);
 
 	if (!window) {
@@ -364,7 +362,7 @@ int main(int argc, char**argv) {
 
 	glfwMakeContextCurrent(window);
 
-	glfwSwapInterval(0);
+	glfwSwapInterval(1);
 
 	glewExperimental = true;
 	GLenum error = glewInit();
@@ -377,12 +375,14 @@ int main(int argc, char**argv) {
 	glfwSetKeyCallback(window, key_callback);
 	glfwSetMouseButtonCallback(window, mouse_button_callback);
 
+	if (!filename) return false;
+
 	if (initGL() != 0) {
 		glfwTerminate();
 		return 4;
 	}
 
-	if (!init_conway()) {
+	if (!init_conway(filename)) {
 		return 0;
 	}
 
